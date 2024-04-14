@@ -1,0 +1,105 @@
+# ====================================== General Configuration =====================================
+[project]
+name = "uq4cgdna"
+version = "1.0.0"
+description = "Forward model for the coarse-grained DNA model."
+readme = "README.md"
+license = {text = "GNU GPLv3"}
+authors = [
+    {name = "Maximilian Kruse", email = "maximilian.kruse@kit.edu"},
+    {name = "Simon Schmitz", email = "udfbw@kit.edu"},
+]
+
+requires-python = ">=3.11"
+dependencies = [
+    "numpy>=1.25.2",
+    "tqdm>=4.66.1",
+    "typeguard>=4.1.5",
+    "zarr>=2.16.1"
+]
+
+#---------------------------------------------------------------------------------------------------
+[project.optional-dependencies]
+notebook = [
+    "jupyter>=1.0.0",
+    "pandas>=2.1.0",
+    "nbstripout>=0.6.1",
+]
+parallel = [
+    "mpi4py>=3.1.5",
+]
+style = [
+    "ruff>=0.0.292",
+    "black>=23.9.1",
+    "mypy>=1.6.0",
+]
+test = [
+    "pytest>=7.4.2",
+    "pytest-cov>=4.1.0",
+]
+vcs = [
+    "pre-commit>=3.4.0",
+]
+visualization = [
+    "matplotlib>=3.8.0",
+]
+
+
+#---------------------------------------------------------------------------------------------------
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+
+# =============================================== Ruff =============================================
+[tool.ruff]
+line-length = 100
+src = ["src"]
+select = ["E", "F", "UP", "D",]
+ignore = []
+fixable = ["ALL"]
+unfixable = []
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+]
+
+#---------------------------------------------------------------------------------------------------
+[tool.ruff.pydocstyle]
+convention = "google"
+
+
+# =============================================== Black ============================================
+[tool.black]
+line-length = 100
+
+
+# =============================================== Pytest ===========================================
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = [
+    "-ra -q",
+    "--import-mode=importlib",
+]
+testpaths = [
+    "tests"
+]

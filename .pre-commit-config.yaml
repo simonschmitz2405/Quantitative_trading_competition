@@ -1,0 +1,23 @@
+# ---------------------------------------------- Ruff ----------------------------------------------
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: 0.0.292
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+        types_or: [python, pyi, jupyter]
+
+# --------------------------------------------- Black ----------------------------------------------
+repos:
+  - repo: https://github.com/psf/black
+    rev: 23.7.0
+    hooks:
+      - id: black
+        language_version: python3.11
+
+# ------------------------------------------- nbstripout -------------------------------------------
+repos:
+- repo: https://github.com/kynan/nbstripout
+  rev: 0.6.1
+  hooks:
+    - id: nbstripout
