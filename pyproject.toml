@@ -1,12 +1,11 @@
 # ====================================== General Configuration =====================================
 [project]
-name = "uq4cgdna"
+name = "Trading Bot"
 version = "1.0.0"
-description = "Forward model for the coarse-grained DNA model."
+description = "This is an implementation for the course Quantitative Trading Competition."
 readme = "README.md"
 license = {text = "GNU GPLv3"}
 authors = [
-    {name = "Maximilian Kruse", email = "maximilian.kruse@kit.edu"},
     {name = "Simon Schmitz", email = "udfbw@kit.edu"},
 ]
 
