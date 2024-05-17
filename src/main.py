@@ -1,18 +1,20 @@
 from trading_bot import TradingBot
-from data_reader import SP500StockData
+from data_reader import DataReader
 import pandas as pd
+
 
 
 def main():
     """The main function of the trading bot."""
-    sp500_stock_data = SP500StockData(start_date="2024-01-01")
-    print("S&P 500 Ticker Symbols:")
-    print(sp500_stock_data.sp500_symbols)
-    stock_data = sp500_stock_data.fetch_stock_data()
-    stock_data.to_csv("sp500_stock_data.csv", index=False)
-    print("S&P 500 Stock Data: ")
-    
-    #print(stock_data.to_csv(r"C:\Users\simon\OneDrive\Dokumente\[1] Uni\[1] Master\2. Semester Sommersemester 2024\Quantitative_trading_competition\Code\Quantitative_trading_competition\data\sp500_stock_data.csv", index=False))
+    # Initialize the DataReader class and get the stock data
+    data_reader = DataReader("2023-05-05")
+    data_reader.run()
+    trading = TradingBot()
+
+
+    # Read the stock data from the CSV file
+    # stock_data = pd.read_csv(r"C:\Users\simon\OneDrive\Dokumente\[1] Uni\[1] Master\2. Semester Sommersemester 2024\Quantitative_trading_competition\Code\Quantitative_trading_competition\data\sp500_stock_data.csv")
+    # print(stock_data)
 
     try:
         print("#============================" "=============================#\n")
