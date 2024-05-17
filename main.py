@@ -1,4 +1,4 @@
-from trading_bot import TradingBot
+from portfolio import Portfolio
 from data_reader import DataReader
 import pandas as pd
 
@@ -9,7 +9,7 @@ def main():
     # Initialize the DataReader class and get the stock data
     data_reader = DataReader("2023-05-05")
     data_reader.run()
-    trading = TradingBot()
+    trading = Portfolio()
 
 
     # Read the stock data from the CSV file
