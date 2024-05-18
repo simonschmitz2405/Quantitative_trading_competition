@@ -1,5 +1,5 @@
-from portfolio import Portfolio
-from data_reader import DataReader
+from src.portfolio import Portfolio
+from src.data_reader import DataReader
 import pandas as pd
 
 
@@ -7,14 +7,13 @@ import pandas as pd
 def main():
     """The main function of the trading bot."""
     # Initialize the DataReader class and get the stock data
-    data_reader = DataReader("2023-05-05")
-    data_reader.run()
-    trading = Portfolio()
+    # data_reader = DataReader("2024-01-01")
+    # data_reader.run()
+    portfolio = Portfolio(streakLength=6, thresholdType="returnRaw")
+    portfolio = Portfolio(streakLength=7, thresholdType="returnRaw")
+    portfolio = Portfolio(streakLength=8, thresholdType="returnRaw")
 
-
-    # Read the stock data from the CSV file
-    # stock_data = pd.read_csv(r"C:\Users\simon\OneDrive\Dokumente\[1] Uni\[1] Master\2. Semester Sommersemester 2024\Quantitative_trading_competition\Code\Quantitative_trading_competition\data\sp500_stock_data.csv")
-    # print(stock_data)
+    portfolio.visualize_portfolio()
 
     try:
         print("#============================" "=============================#\n")
