@@ -97,13 +97,27 @@ class Portfolio:
             date -= BusinessDay(1)
         return date
 
+    # def _get_previous_returns(self, formation, streak_length=5) -> pd.DataFrame:
+    #     """Get the previous returns for the given streak length."""
+    #     previous_returns = {}
+    #     for i in range(1, self.streakLength + 1):
+    #         previous_day = formation - pd.offsets.BusinessDay(i)
+    #         previous_returns[f"ret_{i}"] = self.returns.loc[
+    #             # self._get_previous_business_day(previous_day)
+    #             previous_day
+    #         ]
+    #     return pd.DataFrame(previous_returns)
+    
+
     def _get_previous_returns(self, formation, streak_length=5) -> pd.DataFrame:
         """Get the previous returns for the given streak length."""
         previous_returns = {}
         for i in range(1, self.streakLength + 1):
-            previous_day = formation - pd.offsets.BusinessDay(i)
+            dates_list = self.stockData["DATE"].tolist()
+            index = dates_list.index(formation)
+
             previous_returns[f"ret_{i}"] = self.returns.loc[
-                self._get_previous_business_day(previous_day)
+                dates_list[index - i]
             ]
         return pd.DataFrame(previous_returns)
 
@@ -140,7 +154,7 @@ class Portfolio:
         thresholdType = self._choose_thresholding_type(self.thresholdingType)
         losersRawReturn = streaks[streaks[thresholdType] < 0].index
         winnersRawReturn = streaks[streaks[thresholdType] > 0].index
-        # print("Amount of Stock for this day that are losers", len(losersRawReturn))
+        print("Amount of Stock for this day that are losers", len(losersRawReturn))
 
         # TODO: Calculate the weighted returns for the losers and winners
         # Calculate the average raw return for losers and winners (Equal weighted)
@@ -162,9 +176,11 @@ class Portfolio:
         datesShort = []
 
         for date in self.returns.index[8:]:
+            print(date)
             long_return, short_return = self._calculate_loser_winner_streaks(
                 pd.Timestamp(date), streakLength
             )
+            print(long_return, short_return)
 
             # Füge die Long-Rendite und das Datum hinzu, wenn ein Long-Rendite-Wert berechnet wurde
             if pd.notna(long_return):

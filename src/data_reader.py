@@ -22,7 +22,7 @@ class DataReader:
     def run(self) -> None:
         self.stockData = pd.DataFrame()
         self.sp500_symbols = self._get_sp500_symbols()
-        # self.sp500_symbols = ["MMM"]
+        self.sp500_symbols = ["AOS"]
         self.stockData = pd.DataFrame()
         self._fetch_stock_data(start_date=self.start_date)
         self._save_stock_data_to_csv()

@@ -7,8 +7,8 @@ import pandas as pd
 def main():
     """The main function of the trading bot."""
     # Initialize the DataReader class and get the stock data
-    # data_reader = DataReader("2024-01-01")
-    # data_reader.run()
+    data_reader = DataReader("2024-01-01")
+    data_reader.run()
 
     # portfolio = Portfolio(streakLength=5, thresholdType="returnRaw")
     portfolio = Portfolio(streakLength=5, thresholdType="marketExcessReturn")
