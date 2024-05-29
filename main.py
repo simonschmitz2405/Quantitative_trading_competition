@@ -1,19 +1,16 @@
 from src.portfolio import Portfolio
 from src.data_reader import DataReader
-import pandas as pd
-import numpy as np
-
-
 
 def main():
     """The main function of the trading bot."""
     # Initialize the DataReader class and get the stock data
-    # data_reader = DataReader("2024-01-01")
-    # data_reader.run()
+    data_reader = DataReader("2022-01-01")
+    data_reader.run()
 
     streakLength = [5]
-    thresholdType = ["returnRaw"]
-    valueWeighted = [True]
+    thresholdType = ["marketExcessReturn" ]
+    # thresholdType = ["returnRaw", "marketExcessReturn"]
+    valueWeighted = [False]
 
     for countStreak, streak in enumerate(streakLength):
         for countThres, threshold in enumerate(thresholdType):
