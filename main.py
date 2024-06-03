@@ -1,21 +1,27 @@
 from src.portfolio import Portfolio
 from src.data_reader import DataReader
 
+
 def main():
     """The main function of the trading bot."""
     # Initialize the DataReader class and get the stock data
-    data_reader = DataReader("2022-01-01")
+    data_reader = DataReader("2000-01-01")
     data_reader.run()
 
     streakLength = [5]
-    thresholdType = ["marketExcessReturn" ]
-    # thresholdType = ["returnRaw", "marketExcessReturn"]
+    thresholdType = ["marketExcessReturn"]
     valueWeighted = [False]
+    maxStocks = 10
 
     for countStreak, streak in enumerate(streakLength):
         for countThres, threshold in enumerate(thresholdType):
             for countValue, value in enumerate(valueWeighted):
-                portfolio = Portfolio(streakLength=streak, thresholdType=threshold, valueWeighted=value)
+                portfolio = Portfolio(
+                    streakLength=streak,
+                    thresholdType=threshold,
+                    valueWeighted=value,
+                    maxStocks=maxStocks,
+                )
 
     # portfolio1.visualize_portfolio()
 

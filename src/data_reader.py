@@ -2,14 +2,9 @@ import requests
 from bs4 import BeautifulSoup
 import pandas as pd
 import yfinance as yf
-import urllib.request
-import ssl
 import io
 import zipfile
-import requests
-import zipfile
-import pandas as pd
-import io
+
 
 
 class DataReader:
