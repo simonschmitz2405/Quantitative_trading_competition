@@ -6,11 +6,12 @@ This repository is the Backtesting Implementation for the seminar 'Quantitative 
 - Thresholding Type: Specifies the threshold used to classify over or underperformance. Two threshold types are implemented:
 
 - returnRaw: Determines if the return was positive or negative.
-- marketExcessReturn: Compares the return to the respective market return.
-- Weighting: Determines the percentage of winners or losers bought or sold. Two weighting options are available:
+    - marketExcessReturn: Compares the return to the respective market return.
+    - Weighting: Determines the percentage of winners or losers bought or sold. Two weighting options are available:
 
-- Equal Weighting
-- Relative Weighting
+- Weighing: Determines in which percentage the streak stocks are bought:
+    - Equal Weighting
+    - Relative Weighting
 
 
 . The repository contains the following files:
