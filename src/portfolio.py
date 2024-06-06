@@ -4,84 +4,57 @@ import numpy as np
 import logging
 from scipy import stats
 import statsmodels.api as sm
+import json
+from pathlib import Path
+
 
 class Portfolio:
-    def __init__(self, streakLength, thresholdType, valueWeighted, maxStocks) -> None:
+    """The Portfolio class."""
+
+    def __init__(self, streakLength, maxStock) -> None:
         """Initialize the Portfolio class."""
+
+        # Define the Paths
+        base_path = Path(__file__).resolve().parent.parent
+        self._pathSp500StockData = base_path / "data" / "sp500_stock_data.csv"
+        self._pathMarketReturns = base_path / "data" / "market_interest.csv"
+        self._pathFfWeekly = base_path / "data" / "ff_daily.csv"
+        self._parameters = base_path /"src" / "parameter.json"
+        self._logging = base_path / "src" / "logfile.log"
+
         # Define the logging
         logging.basicConfig(
             level=logging.INFO,
-            filename=r"C:\Users\simon\OneDrive\Dokumente\[1] Uni\[1] Master\2. Semester Sommersemester 2024\Quantitative_trading_competition\Code\Quantitative_trading_competition\src\logfile.log",
+            filename=self._logging,
             filemode="w",
-        )
-
-        # Define the paths
-        self._pathSp500StockData = r"C:\Users\simon\OneDrive\Dokumente\[1] Uni\[1] Master\2. Semester Sommersemester 2024\Quantitative_trading_competition\Code\Quantitative_trading_competition\data\sp500_stock_data.csv"
-        self._pathMarketReturns = r"C:\Users\simon\OneDrive\Dokumente\[1] Uni\[1] Master\2. Semester Sommersemester 2024\Quantitative_trading_competition\Code\Quantitative_trading_competition\data\market_interest.csv"
-        self._pathFfWeekly = r"C:\Users\simon\OneDrive\Dokumente\[1] Uni\[1] Master\2. Semester Sommersemester 2024\Quantitative_trading_competition\Code\Quantitative_trading_competition\data\ff_daily.csv"
-
-        # Read the CSV file
+        )   
+        
+        # Read the CSV file an store data as dataframes
         self.stockData, self.marketReturns, self.ff_daily = self._read_csv()
 
         # Initialize the hyperparameters
         self.streakLength = streakLength
-        self.thresholdingType = thresholdType
-        self.valueWeighted = valueWeighted
-        self.maxStocks = maxStocks
-        self.longShort = None  # TODO: Implement
-
-        # Initialize the dataFrames which are used later
-        # self.returns = None
+        self.maxStock = maxStock
 
         # Run the trading strategy
-        self.dailyReturnsLong, self.dailyReturnsShort = self._run()
+        self._run()
 
-        # Calculate the list of the risk-free rate
+        # Calculate the list (!) of the risk-free rate
         self.riskFreeRate, self.marketReturns = self._calculate_riskfree_market_rate()
-
-
-        # Calculate the perfomrance of the portfolio
-        self._calculate_performance()
-        # self._calculate_annualized_return()
-        # self._performance_portfolio()
 
     def _run(self) -> None:
         """Run the trading strategy."""
-        # Print the parameters of the trading strategy
-        self._print_parameter()
-
         # Prepare the data for the trading strategy
-        self.returns = self._prepare_data()
+        self._prepare_data()
 
-        # Calculate the daily returns for the long and short portfolios
-        dailyReturnsLong, dailyReturnsShort = self._calculate_long_short_portfolio()
+        # Calculate the streaks
+        self._calculate_streaks()
 
-        return dailyReturnsLong, dailyReturnsShort
+        self.Returns = self._calculate_returns()
 
-    def _print_parameter(self) -> None:
-        """Print the parameters of the trading strategy."""
-        print("#============================" "=============================#\n")
-        print("PORTFOLIO\n")
-        print("Parameters of the trading strategy:")
-        print("#---------------------------")
-        print(f"Streak length: {self.streakLength}")
-        print(f"Thresholding type: {self.thresholdingType}")
-        print(f"Weighting: {self.valueWeighted}")
-        print(f"Max Stocks: {self.maxStocks}")
-        print(f"Long/Short: {self.longShort} \n")
+        return None
 
-    def _choose_thresholding_type(self, thresholdType) -> int:
-        """Choose the thresholding type."""
-        if thresholdType == "marketExcessReturn":
-            return "Streak_Market_Return"
-        elif thresholdType == "returnRaw":
-            return "Streak_Raw_Return"
-        else:
-            print(
-                "Invalid thresholding type. Please choose one of the following: marketExcessReturn, returnRaw"
-            )
-
-    def _read_csv(self) -> pd.DataFrame:
+    def _read_csv(self) -> tuple:
         """Read the CSV file."""
         try:
             stockData = pd.read_csv(self._pathSp500StockData)
@@ -91,152 +64,233 @@ class Portfolio:
             print(f"Error loading data: {e}")
         return stockData, marketReturns, ff_weekly
 
-    def _prepare_data(self):
+    def _prepare_data(self) -> None:
         """Prepare the data for the trading strategy."""
-        self.stockData["DATE"] = pd.to_datetime(self.stockData["DATE"])
-        prices = self.stockData.pivot(index="DATE", columns="TICKER", values="CLOSE")
-        returns = prices.pct_change()
-        self.marketReturns.set_index("DATE", inplace=True)
-        self.marketReturns.index = pd.to_datetime(self.marketReturns.index)
-        return returns
+        # Sort stock data by DATE for each ticker
+        self.stockData.sort_values(by=["TICKER", "DATE"], inplace=True)
+        self.stockData = pd.merge(self.stockData, self.marketReturns, on="DATE", how="left")
 
-    def _get_previous_returns(self, formation) -> pd.DataFrame:
-        """Get the previous returns for the given streak length."""
-        previous_returns = {}
-        for i in range(1, self.streakLength + 1):
-            dates_list = self.stockData["DATE"].tolist()
-            index = dates_list.index(formation)
+        # Create lagged return columns
+        for lag in range(1, self.streakLength + 1):
+            self.stockData[f"LAG_{lag}"] = self.stockData.groupby("TICKER")["RETURN"].shift(lag)
 
-            previous_returns[f"ret_{i}"] = self.returns.loc[dates_list[index - i]]
-        return pd.DataFrame(previous_returns)
+        # Calculate excess market return lagged columns
+        for lag in range(1, self.streakLength + 1):
+            self.stockData[f"LAG_{lag}_MARKET"] = self.stockData.groupby("TICKER")["RETURN"].shift(
+                lag
+            ) - self.stockData.groupby("TICKER")["SP500_Returns"].shift(lag)
 
-    def _get_previous_market_excess_returns(self, formation) -> pd.DataFrame:
-        """Get the previous market excess returns for the given streak length."""
-        previous_market_excess_returns = {}
-        for i in range(1, self.streakLength + 1):
-            dates_list = self.stockData["DATE"].tolist()
-            index = dates_list.index(formation)
-            previous_market_excess_returns[f"ret_market_excess{i}"] = (
-                self.returns.loc[dates_list[index - i]]
-                - self.marketReturns.loc[
-                    dates_list[index - i], "SP500_Returns"
-                ]
+        # Calculate the market cap weighted returns which will be normalized by value afterwards
+        self.stockData["RETURN*MARKET_CAP"] = self.stockData["RETURN"] * self.stockData["MARKET_CAP"]
+
+        return None
+
+    def _calculate_streaks(self) -> None:
+        """Calculate the streaks for the total dataFrame."""
+        # Calculate streaks for each lag for the two types of thresholding
+        for streak in range(1, self.streakLength + 1):
+            # Thresholding based on raw returns
+            streak_condition_raw = (
+                self.stockData[[f"LAG_{i}" for i in range(1, streak + 1)]] > 0
+            ).all(axis=1) | (self.stockData[[f"LAG_{i}" for i in range(1, streak + 1)]] < 0).all(
+                axis=1
             )
-        return pd.DataFrame(previous_market_excess_returns)
+            # Thresholding based on excess returns
+            streak_condition_excess = (
+                self.stockData[[f"LAG_{i}_MARKET" for i in range(1, streak + 1)]] > 0
+            ).all(axis=1) | (
+                self.stockData[[f"LAG_{i}_MARKET" for i in range(1, streak + 1)]] < 0
+            ).all(axis=1)
 
+            # Create columns for the streaks based on the thresholding conditions
+            # Streak: 1, No streak: 0
+            self.stockData[f"STREAK_{streak}"] = np.where(streak_condition_raw, 1, 0)
+            self.stockData[f"STREAK_{streak}_MARKET"] = np.where(
+                streak_condition_excess, 1, self.stockData[f"STREAK_{streak}"]
+            )
 
-    def _calculate_streak(self, x) -> int:
-        """Calculate if there is a streak raw return."""
-        return 1 if (x > 0).all() or (x < 0).all() else 0
-    
-    def _calculate_loser_winner_streaks(self, returnDay) -> tuple:
+            # Multiply streaks by the mean of the respective lagged returns
+            # Positive Streak: Positive mean, Negative Streak: Negative mean
+            self.stockData[f"STREAK_{streak}"] *= self.stockData[
+                [f"LAG_{i}" for i in range(1, streak + 1)]
+            ].mean(axis=1)
+            self.stockData[f"STREAK_{streak}_MARKET"] *= self.stockData[
+                [f"LAG_{i}_MARKET" for i in range(1, streak + 1)]
+            ].mean(axis=1)
+
+        return None
+
+    def _get_top_rows(self, group, streak, condition) -> pd.DataFrame:
+        """Helper function to get top maxStock rows for a given condition."""
+        if condition == "long":
+            return group[group[f"STREAK_{streak}"] < 0].nsmallest(self.maxStock, f"STREAK_{streak}")
+        elif condition == "short":
+            return group[group[f"STREAK_{streak}"] > 0].nlargest(self.maxStock, f"STREAK_{streak}")
+
+    def _calculate_returns(self) -> pd.DataFrame:
         """Calculate the loser and winner streaks for the given formation date."""
-        returnStreakRaw = pd.DataFrame(self._get_previous_returns(returnDay))
-        returnStreakMarket = pd.DataFrame(self._get_previous_market_excess_returns(returnDay))
-        streaks = pd.DataFrame(index=returnStreakRaw.index)
-        streaks["Streak_Raw_Return"] = returnStreakRaw.apply(
-            lambda x: self._calculate_streak(x), axis=1
-        ) * returnStreakRaw.mean(axis=1)
-        streaks["Streak_Market_Return"] = returnStreakMarket.apply(
-            lambda x: self._calculate_streak(x), axis=1
-        ) * returnStreakMarket.mean(axis=1)
-        thresholdType = self._choose_thresholding_type(self.thresholdingType)
-        losersRawReturn = streaks[streaks[thresholdType] < 0 ].nsmallest(self.maxStocks, thresholdType).index
-        winnersRawReturn = streaks[streaks[thresholdType] > 0].nlargest(self.maxStocks, thresholdType).index
-        # print("Amount of Stock for this day that are losers", len(losersRawReturn))
-        # print("Amount of Stock for this day that are winners", len(winnersRawReturn))
-        # print('Date', returnDay)
-        # print("LoserIndex", losersRawReturn)
-        losRetRawReturn = None
-        winRetRawReturn = None
+        Returns = pd.DataFrame()
 
-        # Check if the value weighted return should be calculated
-        if self.valueWeighted is True:
-            weightsLoser = []
-            weightsWinner = []
+        # Ensure 'DATE' column in stockData is datetime
+        self.stockData["DATE"] = pd.to_datetime(self.stockData["DATE"])
 
-            # Calculate the Returns for the winners and losers
-            if not losersRawReturn.tolist():
-                losRetRawReturn = 0
-            else:
-                # Get the returns for the losers and winners
-                losRetRawReturn = self.returns.loc[
-                    returnDay, self.returns.columns.isin(losersRawReturn)
-                ]
-            if not winnersRawReturn.tolist():
-                winRetRawReturn = 0
-            else:
-                winRetRawReturn = self.returns.loc[
-                    returnDay, self.returns.columns.isin(winnersRawReturn)
-                ]
+        # Initialize the Returns DataFrame with unique dates from stockData
+        unique_dates = self.stockData["DATE"].unique()
+        Returns["DATE"] = pd.to_datetime(unique_dates)
 
-            # Calculate the weights for the winners and losers
-            for ticker in losersRawReturn.tolist():
-                weightsLoser.append(
-                    self.stockData.loc[
-                        (self.stockData["TICKER"] == ticker)
-                        & (self.stockData["DATE"] == returnDay),
-                        "MARKET_CAP",
-                    ].values[0]
-                )
+        # Initialize dictionaries to store long and short streaks
+        # Thresholding raw Returns
+        long_streaks = {}
+        short_streaks = {}
+        # Thresholding excess Returns
+        long_streaks_market = {}
+        short_streaks_market = {}
 
-            for ticker in winnersRawReturn.tolist():
-                weightsWinner.append(
-                    self.stockData.loc[
-                        (self.stockData["TICKER"] == ticker)
-                        & (self.stockData["DATE"] == returnDay),
-                        "MARKET_CAP",
-                    ].values[0]
-                )
+        for streak in range(1, self.streakLength + 1):
+            # Define the key names for the long and short streaks for raw and excess returns
+            key_name_long = f"Long_{streak}"
+            key_name_short = f"Short_{streak}"
+            key_name_long_market = f"Long_{streak}_MARKET"
+            key_name_short_market = f"Short_{streak}_MARKET"
 
-            # Calculate the relative weights
-            weightsLoser = weightsLoser / np.sum(weightsLoser)
-            weightsWinner = weightsWinner / np.sum(weightsWinner)
+            # Filter data for long and short streaks for raw returns
+            long_streaks[key_name_long] = (
+                self.stockData.groupby("DATE")
+                .apply(self._get_top_rows, streak=streak, condition="long")
+                .reset_index(drop=True)
+            )
+            short_streaks[key_name_short] = (
+                self.stockData.groupby("DATE")
+                .apply(self._get_top_rows, streak=streak, condition="short")
+                .reset_index(drop=True)
+            )
 
-            if not losersRawReturn.tolist():
-                weightsLoser = 0
+            # Filter data for long and short streaks for excess returns
+            long_streaks_market[key_name_long_market] = (
+                self.stockData.groupby("DATE")
+                .apply(self._get_top_rows, streak=streak, condition="long")
+                .reset_index(drop=True)
+            )
+            short_streaks_market[key_name_short_market] = (
+                self.stockData.groupby("DATE")
+                .apply(self._get_top_rows, streak=streak, condition="short")
+                .reset_index(drop=True)
+            )
 
-            if not winnersRawReturn.tolist():
-                weightsWinner = 0
+            # Ensure 'DATE' columns in long_streaks are datetime
+            long_streaks[key_name_long]["DATE"] = pd.to_datetime(
+                long_streaks[key_name_long]["DATE"]
+            )
+            short_streaks[key_name_short]["DATE"] = pd.to_datetime(
+                short_streaks[key_name_short]["DATE"]
+            )
+            long_streaks_market[key_name_long_market]["DATE"] = pd.to_datetime(
+                long_streaks_market[key_name_long_market]["DATE"]
+            )
+            short_streaks_market[key_name_short_market]["DATE"] = pd.to_datetime(
+                short_streaks_market[key_name_short_market]["DATE"]
+            )
 
-            # Calculate the value weighted return
-            losRetRawReturn = np.dot(losRetRawReturn, weightsLoser)
-            winRetRawReturn = np.dot(winRetRawReturn, weightsWinner)
+            value_long = (long_streaks[key_name_long].groupby("DATE")["MARKET_CAP"].sum())
+            value_short = (short_streaks[key_name_short].groupby("DATE")["MARKET_CAP"].sum())
+            value_long_market = (
+                long_streaks_market[key_name_long_market].groupby("DATE")["MARKET_CAP"].sum()
+            )
+            value_short_market = (
+                short_streaks_market[key_name_short_market].groupby("DATE")["MARKET_CAP"].sum()
+            )
 
-        else:
-            if not losersRawReturn.tolist():
-                losRetRawReturn = 0
-            else:
-                # Get the returns for the losers and winners
-                losRetRawReturn = self.returns.loc[
-                    returnDay, self.returns.columns.isin(losersRawReturn)
-                ].mean()
-            if not winnersRawReturn.tolist():
-                winRetRawReturn = 0
-            else:
-                winRetRawReturn = self.returns.loc[
-                    returnDay, self.returns.columns.isin(winnersRawReturn)
-                ].mean()
+            # Calculate the mean returns for equal weights for long and short streaks
+            mean_returns_long = (
+                long_streaks[key_name_long]
+                .groupby("DATE")["RETURN"]
+                .mean()
+                .rename(f"LONG_{streak}_EQUAL_RAW")
+            )
+            mean_returns_short = (
+                short_streaks[key_name_short]
+                .groupby("DATE")["RETURN"]
+                .mean()
+                .rename(f"SHORT_{streak}_EQUAL_RAW")
+            )
+            mean_returns_long_market = (
+                long_streaks_market[key_name_long_market]
+                .groupby("DATE")["RETURN"]
+                .mean()
+                .rename(f"LONG_{streak}_EQUAL_MARKET")
+            )
+            mean_returns_short_market = (
+                short_streaks_market[key_name_short_market]
+                .groupby("DATE")["RETURN"]
+                .mean()
+                .rename(f"SHORT_{streak}_EQUAL_MARKET")
+            )
 
-        return losRetRawReturn, winRetRawReturn
+            # Calculate the relative returns for long and short streaks
+            relative_returns_long = (
+                long_streaks[key_name_long]
+                .groupby("DATE")["RETURN*MARKET_CAP"]
+                .sum()
+                .div(value_long)
+                .rename(f"LONG_{streak}_RELATIVE_RAW")
+            )
+            relative_returns_short = (
+                short_streaks[key_name_short]
+                .groupby("DATE")["RETURN*MARKET_CAP"]
+                .sum()
+                .div(value_short)
+                .rename(f"SHORT_{streak}_RELATIVE_RAW")
+            )
+            relative_returns_long_market = (
+                long_streaks_market[key_name_long_market]
+                .groupby("DATE")["RETURN*MARKET_CAP"]
+                .sum()
+                .div(value_long_market)
+                .rename(f"LONG_{streak}_RELATIVE_MARKET")
+            )
+            relative_returns_short_market = (
+                short_streaks_market[key_name_short_market]
+                .groupby("DATE")["RETURN*MARKET_CAP"]
+                .sum()
+                .div(value_short_market)
+                .rename(f"SHORT_{streak}_RELATIVE_MARKET")
+            )
 
-    def _calculate_long_short_portfolio(self) -> tuple:
-        """Calculate the daily returns for given streak length."""
-        correction = len(self.marketReturns.index) - len(self.ff_daily.index)
-        result = np.zeros((3, len(self.returns.index[8:-correction])))
-        for i, date in enumerate(self.returns.index[8:-correction]):
-            print(date)
-            result[0, i], result[1, i]= self._calculate_loser_winner_streaks(pd.Timestamp(date))
-        
-        logging.info("Daily Returns Long: %s", result[0, :])
-        logging.info("Daily Returns Short: %s", result[1, :])
 
-        return result[0, :], result[1, :]
+            # Merge the mean returns into the Returns DataFrame
+            Returns = pd.merge(Returns, mean_returns_long.reset_index(), on="DATE", how="left")
+            Returns = pd.merge(Returns, mean_returns_short.reset_index(), on="DATE", how="left")
+            Returns = pd.merge(
+                Returns, mean_returns_long_market.reset_index(), on="DATE", how="left"
+            )
+            Returns = pd.merge(
+                Returns, mean_returns_short_market.reset_index(), on="DATE", how="left"
+            )
+            Returns = pd.merge(
+                Returns, relative_returns_long.reset_index(), on="DATE", how="left"
+            )
+            Returns = pd.merge(
+                Returns, relative_returns_short.reset_index(), on="DATE", how="left"
+            )
+            Returns = pd.merge(
+                Returns, relative_returns_long_market.reset_index(), on="DATE", how="left"
+            )
+            Returns = pd.merge(
+                Returns, relative_returns_short_market.reset_index(), on="DATE", how="left"
+            )
 
-    def _calculate_riskfree_market_rate(self) -> float:
+
+        Returns.drop(columns=["DATE"], inplace=True)
+        Returns.fillna(0, inplace=True)
+        return Returns
+
+    def _calculate_riskfree_market_rate(self) -> tuple:
         """Calculate the risk-free rate."""
         correction = len(self.marketReturns.index) - len(self.ff_daily.index)
-        return self.ff_daily["RF"].tolist()[8:], self.marketReturns["SP500_Returns"].tolist()[8:-correction]
+        self.marketReturns.fillna(0, inplace=True)
+        return self.ff_daily["RF"].tolist(), self.marketReturns["SP500_Returns"].tolist()[
+            :-correction
+        ]
 
     def _get_t_stats(self, vector, lags=1) -> tuple:
         """Calculate the t-stats for the long and short portfolios with Newey-West standard errors."""
@@ -245,7 +299,7 @@ class Portfolio:
         model = sm.OLS(vector, X)
 
         # Fit the model
-        results = model.fit(cov_type='HAC', cov_kwds={'maxlags': lags})
+        results = model.fit(cov_type="HAC", cov_kwds={"maxlags": lags})
 
         # Get the t-statistic and p-value
         t = results.tvalues[0]
@@ -253,136 +307,119 @@ class Portfolio:
 
         return t, p
 
-
-    def _plot_data(self) -> None:
-        """Plot the daily returns for the long and short portfolios."""
-        logging.info("Daily Returns Long", self.dailyReturnsLong)
-        logging.info("Daily Returns Short", self.dailyReturnsShort)
-
-
-    def _calculate_performance(self) -> None:
+    def _calculate_performance(self, dailyReturns) -> None:
         """Calculate the performance of the portfolio."""
+        correction = len(dailyReturns) - len(self.riskFreeRate)
+        dailyReturns = dailyReturns[:-correction]
+
         # Daily average returns
-        dailyReturnLong = np.array(self.dailyReturnsLong).mean()
-        dailyReturnShort = np.array(self.dailyReturnsShort).mean()
+        dailyReturn = np.array(dailyReturns).mean()
         dailyReturnRiskFree = np.array(self.riskFreeRate).mean()
         dailyReturnMarket = np.array(self.marketReturns).mean()
         # Daily standard deviation
-        dailystandarddeviationLong = np.array(self.dailyReturnsLong).std()
-        dailystandarddeviationShort = np.array(self.dailyReturnsShort).std()
+        dailystandarddeviation = np.array(dailyReturns).std()
         dailystandarddeviationRiskFree = np.array(self.riskFreeRate).std()
         dailystandarddeviationMarket = np.array(self.marketReturns).std()
         # Annualized average returns
-        annualizedReturnLong = dailyReturnLong * 252
-        annualizedReturnShort = dailyReturnShort * 252
+        annualizedReturn = dailyReturn * 252
         annualizedReturnRiskFree = dailyReturnRiskFree * 252
         annualizedReturnMarket = dailyReturnMarket * 252
         # Annualized standard deviation
-        annualizedStandardDeviationLong = dailystandarddeviationLong * np.sqrt(252)
-        annualizedStandardDeviationShort = dailystandarddeviationShort * np.sqrt(252)
+        annualizedStandardDeviation = dailystandarddeviation * np.sqrt(252)
         annualizedStandardDeviationRiskFree = dailystandarddeviationRiskFree * np.sqrt(252)
         annualizedStandardDeviationMarket = dailystandarddeviationMarket * np.sqrt(252)
         # Sharpe Ratio annualized
-        sharpeRatioLong = (annualizedReturnLong - annualizedReturnRiskFree) / annualizedStandardDeviationLong
-        sharpeRatioShort = (annualizedReturnShort - annualizedReturnRiskFree) / annualizedStandardDeviationShort
+        sharpeRatioLong = (
+            annualizedReturn - annualizedReturnRiskFree
+        ) / annualizedStandardDeviation
 
-        dailyexcessriskfreelong = np.array(self.dailyReturnsLong) - np.array(self.riskFreeRate)
-        dailyexcessriskfreeshort = np.array(self.dailyReturnsShort) - np.array(self.riskFreeRate)
-        dailyexcessmarketlong = np.array(self.dailyReturnsLong) - np.array(self.marketReturns)
-        dailyexcessmarketshort = np.array(self.dailyReturnsShort) - np.array(self.marketReturns)
+        dailyexcessriskfreelong = np.array(dailyReturns) - np.array(self.riskFreeRate)
+        dailyexcessmarketlong = np.array(dailyReturns) - np.array(self.marketReturns)
 
         tstatsexcessriskfreelong = self._get_t_stats(dailyexcessriskfreelong)
-        tstatsexcessriskfreeshort = self._get_t_stats(dailyexcessriskfreeshort)
         tstatsexcessmarketlong = self._get_t_stats(dailyexcessmarketlong)
-        tstatsexcessmarketshort = self._get_t_stats(dailyexcessmarketshort)
-    
-
 
         print("Performance of the portfolio:")
         print("#---------------------------")
-        print("Daily average returns long: ", dailyReturnLong)
-        print("Daily average returns short: ", dailyReturnShort)
+        print("Daily average returns: ", dailyReturn)
         print("Daily average risk free rate: ", dailyReturnRiskFree)
         print("Daily average market return: ", dailyReturnMarket)
         print("#---------------------------")
-        print("Daily standard deviation long: ", dailystandarddeviationLong)
-        print("Daily standard deviation short: ", dailystandarddeviationShort)
+        print("Daily standard deviation: ", dailystandarddeviation)
         print("Daily standard deviation risk free rate: ", dailystandarddeviationRiskFree)
         print("Daily standard deviation market return: ", dailystandarddeviationMarket)
         print("#---------------------------")
-        print("Annualized average returns long: ", annualizedReturnLong)
-        print("Annualized average returns short: ", annualizedReturnShort)
+        print("Annualized average returns: ", annualizedReturn)
         print("Annualized average risk free rate: ", annualizedReturnRiskFree)
         print("Annualized average market return: ", annualizedReturnMarket)
         print("#---------------------------")
-        print("Annualized standard deviation long: ", annualizedStandardDeviationLong)
-        print("Annualized standard deviation short: ", annualizedStandardDeviationShort)
+        print("Annualized standard deviation: ", annualizedStandardDeviation)
         print("Annualized standard deviation risk free rate: ", annualizedStandardDeviationRiskFree)
         print("Annualized standard deviation market return: ", annualizedStandardDeviationMarket)
         print("#---------------------------")
-        print("Excess return risk free annualized long :", annualizedReturnLong - annualizedReturnRiskFree)
-        print("Excess return risk free annualized short :", annualizedReturnShort - annualizedReturnRiskFree)
-        print("Excess return market annualized long :", annualizedReturnLong - annualizedReturnMarket)
-        print("Excess return market annualized short :", annualizedReturnShort - annualizedReturnMarket)
-        print("#---------------------------")
-        print("Sharpe Ratio long: ", sharpeRatioLong)
-        print("Sharpe Ratio short: ", sharpeRatioShort)
-        print("#---------------------------")
-        print("T-Stats excess risk free long: ", tstatsexcessriskfreelong)
-        print("T-Stats excess risk free short: ", tstatsexcessriskfreeshort)
-        print("T-Stats excess market long: ", tstatsexcessmarketlong)
-        print("T-Stats excess market short: ", tstatsexcessmarketshort)
-
-        logging.info("Daily average returns long: %s", dailyReturnLong)
-        logging.info("Daily average returns short: %s", dailyReturnShort)
-        logging.info("Daily average risk free rate: %s", dailyReturnRiskFree)
-        logging.info("Daily average market return: %s", dailyReturnMarket)
-        logging.info("Daily standard deviation long: %s", dailystandarddeviationLong)
-        logging.info("Daily standard deviation short: %s", dailystandarddeviationShort)
-        logging.info("Daily standard deviation risk free rate: %s", dailystandarddeviationRiskFree)
-        logging.info("Daily standard deviation market return: %s", dailystandarddeviationMarket)
-        logging.info("Annualized average returns long: %s", annualizedReturnLong)
-        logging.info("Annualized average returns short: %s", annualizedReturnShort)
-        logging.info("Annualized average risk free rate: %s", annualizedReturnRiskFree)
-        logging.info("Annualized average market return: %s", annualizedReturnMarket)
-        logging.info("Annualized standard deviation long: %s", annualizedStandardDeviationLong)
-        logging.info("Annualized standard deviation short: %s", annualizedStandardDeviationShort)
-        logging.info("Annualized standard deviation risk free rate: %s", annualizedStandardDeviationRiskFree)
-        logging.info("Annualized standard deviation market return: %s", annualizedStandardDeviationMarket)
-        logging.info("Excess return risk free annualized long :%s", annualizedReturnLong - annualizedReturnRiskFree)
-        logging.info("Excess return risk free annualized short :%s", annualizedReturnShort - annualizedReturnRiskFree)
-        logging.info("Excess return market annualized long :%s", annualizedReturnLong - annualizedReturnMarket)
-        logging.info("Excess return market annualized short :%s", annualizedReturnShort - annualizedReturnMarket)
-        logging.info("Sharpe Ratio long: %s", sharpeRatioLong)
-        logging.info("Sharpe Ratio short: %s", sharpeRatioShort)
-        logging.info("T-Stats excess risk free long: %s", tstatsexcessriskfreelong)
-        logging.info("T-Stats excess risk free short: %s", tstatsexcessriskfreeshort)
-        logging.info("T-Stats excess market long: %s", tstatsexcessmarketlong)
-        logging.info("T-Stats excess market short: %s", tstatsexcessmarketshort)
-
-
-    def visualize_portfolio(self) -> None:
-        """Visualize the portfolio."""
-        # cleanReturnsLong = [x for x in self.dailyReturnsLong if str(x) != "nan"]
-        # cleanReturnsShort = [x for x in self.dailyReturnsShort if str(x) != "nan"]
-
-        initialBudget = 1
-        budgetLong = [initialBudget]
-        budgetMarket = [initialBudget]
-        # budgetShort = [initialBudget]
-
-        min_length = min(
-            len(self.dailyReturnsLong),
-            len(self.dailyReturnsShort),
-            len(self.marketReturns["SP500_Returns"]),
+        print(
+            "Excess return risk free annualized:",
+            annualizedReturn - annualizedReturnRiskFree,
         )
 
-        for i in range(1, min_length):
-            budgetLong.append(budgetLong[i - 1] * (1 + self.dailyReturnsLong[i]))
-            # budgetShort.append(budgetShort[i - 1] * (1 + self.dailyReturnsShort[i]))
-            budgetMarket.append(budgetMarket[i - 1] * (1 + self.marketReturns["SP500_Returns"][i]))
-        plt.plot(budgetLong, label="Long Portfolio")
-        plt.plot(budgetMarket, label="Market Portfolio")
-        # plt.plot(budgetShort, label="Short Portfolio")
-        plt.legend()
-        plt.show()
+        print("Excess return market annualized:", annualizedReturn - annualizedReturnMarket)
+        print("#---------------------------")
+        print("Sharpe Ratio: ", sharpeRatioLong)
+        print("#---------------------------")
+        print("T-Stats excess risk free: ", tstatsexcessriskfreelong)
+        print("T-Stats excess market: ", tstatsexcessmarketlong)
+
+        logging.info("Daily average returns: %s", dailyReturn)
+        logging.info("Daily average risk free rate: %s", dailyReturnRiskFree)
+        logging.info("Daily average market return: %s", dailyReturnMarket)
+        logging.info("Daily standard deviation: %s", dailystandarddeviation)
+        logging.info("Daily standard deviation risk free rate: %s", dailystandarddeviationRiskFree)
+        logging.info("Daily standard deviation market return: %s", dailystandarddeviationMarket)
+        logging.info("Annualized average returns: %s", annualizedReturn)
+        logging.info("Annualized average risk free rate: %s", annualizedReturnRiskFree)
+        logging.info("Annualized average market return: %s", annualizedReturnMarket)
+        logging.info("Annualized standard deviation: %s", annualizedStandardDeviation)
+        logging.info(
+            "Annualized standard deviation risk free rate: %s", annualizedStandardDeviationRiskFree
+        )
+        logging.info(
+            "Annualized standard deviation market return: %s", annualizedStandardDeviationMarket
+        )
+        logging.info(
+            "Excess return risk free annualized:%s",
+            annualizedReturn - annualizedReturnRiskFree,
+        )
+
+        logging.info(
+            "Excess return market annualized:%s",
+            annualizedReturn - annualizedReturnMarket,
+        )
+
+        logging.info("Sharpe Ratio: %s", sharpeRatioLong)
+        logging.info("T-Stats excess risk free: %s", tstatsexcessriskfreelong)
+        logging.info("T-Stats excess market: %s", tstatsexcessmarketlong)
+
+    def _print_portfolio_details(self, column) -> None:
+        """Print the details of the portfolio."""
+        with open(self._parameters ) as file:
+            portfolio_details = json.load(file)
+
+        details = portfolio_details.get(column)
+        if details:
+            print("Parameter of the portfolio:")
+            print("#---------------------------")
+            print(f"Portfolio: {details['Portfolio']}")
+            print(f"Streak: {details['Streak']}")
+            print(f"Weighting: {details['Weighting']}")
+            print(f"Thresholding: {details['Thresholding']}")
+            print("Max Stocks: ", self.maxStock)
+        else:
+            print(f"No details found for column: {column}")
+
+    def calculate_performance_all(self) -> None:
+        """Calculate the performance of the portfolio for all columns in the Returns DataFrame."""
+        for column in self.Returns.columns:
+            print("#============================" "=============================#\n")
+            self._print_portfolio_details(column)
+            self._calculate_performance(self.Returns[column].tolist())
+        return None

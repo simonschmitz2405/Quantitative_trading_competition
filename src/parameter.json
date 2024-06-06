@@ -1,0 +1,243 @@
+{
+    "LONG_1_EQUAL_RAW": {
+        "Portfolio": "Long",
+        "Streak": 1,
+        "Weighting": "Equal",
+        "Thresholding": "Raw Returns"
+    },
+    "LONG_2_EQUAL_RAW": {
+        "Portfolio": "Long",
+        "Streak": 2,
+        "Weighting": "Equal",
+        "Thresholding": "Raw Returns"
+    },
+    "LONG_3_EQUAL_RAW": {
+        "Portfolio": "Long",
+        "Streak": 3,
+        "Weighting": "Equal",
+        "Thresholding": "Raw Returns"
+    },
+    "LONG_4_EQUAL_RAW": {
+        "Portfolio": "Long",
+        "Streak": 4,
+        "Weighting": "Equal",
+        "Thresholding": "Raw Returns"
+    },
+    "LONG_5_EQUAL_RAW": {
+        "Portfolio": "Long",
+        "Streak": 5,
+        "Weighting": "Equal",
+        "Thresholding": "Raw Returns"
+    },
+    "SHORT_1_EQUAL_RAW": {
+        "Portfolio": "Short",
+        "Streak": 1,
+        "Weighting": "Equal",
+        "Thresholding": "Raw Returns"
+    },
+    "SHORT_2_EQUAL_RAW": {
+        "Portfolio": "Short",
+        "Streak": 2,
+        "Weighting": "Equal",
+        "Thresholding": "Raw Returns"
+    },
+    "SHORT_3_EQUAL_RAW": {
+        "Portfolio": "Short",
+        "Streak": 3,
+        "Weighting": "Equal",
+        "Thresholding": "Raw Returns"
+    },
+    "SHORT_4_EQUAL_RAW": {
+        "Portfolio": "Short",
+        "Streak": 4,
+        "Weighting": "Equal",
+        "Thresholding": "Raw Returns"
+    },
+    "SHORT_5_EQUAL_RAW": {
+        "Portfolio": "Short",
+        "Streak": 5,
+        "Weighting": "Equal",
+        "Thresholding": "Raw Returns"
+    },
+    "LONG_1_EQUAL_MARKET": {
+        "Portfolio": "Long",
+        "Streak": 1,
+        "Weighting": "Equal",
+        "Thresholding": "Excess Returns"
+    },
+    "LONG_2_EQUAL_MARKET": {
+        "Portfolio": "Long",
+        "Streak": 2,
+        "Weighting": "Equal",
+        "Thresholding": "Excess Returns"
+    },
+    "LONG_3_EQUAL_MARKET": {
+        "Portfolio": "Long",
+        "Streak": 3,
+        "Weighting": "Equal",
+        "Thresholding": "Excess Returns"
+    },
+    "LONG_4_EQUAL_MARKET": {
+        "Portfolio": "Long",
+        "Streak": 4,
+        "Weighting": "Equal",
+        "Thresholding": "Excess Returns"
+    },
+    "LONG_5_EQUAL_MARKET": {
+        "Portfolio": "Long",
+        "Streak": 5,
+        "Weighting": "Equal",
+        "Thresholding": "Excess Returns"
+    },
+    "SHORT_1_EQUAL_MARKET": {
+        "Portfolio": "Short",
+        "Streak": 1,
+        "Weighting": "Equal",
+        "Thresholding": "Excess Returns"
+    },
+    "SHORT_2_EQUAL_MARKET": {
+        "Portfolio": "Short",
+        "Streak": 2,
+        "Weighting": "Equal",
+        "Thresholding": "Excess Returns"
+    },
+    "SHORT_3_EQUAL_MARKET": {
+        "Portfolio": "Short",
+        "Streak": 3,
+        "Weighting": "Equal",
+        "Thresholding": "Excess Returns"
+    },
+    "SHORT_4_EQUAL_MARKET": {
+        "Portfolio": "Short",
+        "Streak": 4,
+        "Weighting": "Equal",
+        "Thresholding": "Excess Returns"
+    },
+    "SHORT_5_EQUAL_MARKET": {
+        "Portfolio": "Short",
+        "Streak": 5,
+        "Weighting": "Equal",
+        "Thresholding": "Excess Returns"
+    },
+    "LONG_1_RELATIVE_RAW": {
+        "Portfolio": "Long",
+        "Streak": 1,
+        "Weighting": "Relative",
+        "Thresholding": "Raw Returns"
+    },  
+    "LONG_2_RELATIVE_RAW": {
+        "Portfolio": "Long",
+        "Streak": 2,
+        "Weighting": "Relative",
+        "Thresholding": "Raw Returns"
+    },
+    "LONG_3_RELATIVE_RAW": {
+        "Portfolio": "Long",
+        "Streak": 3,
+        "Weighting": "Relative",
+        "Thresholding": "Raw Returns"
+    },
+    "LONG_4_RELATIVE_RAW": {
+        "Portfolio": "Long",
+        "Streak": 4,
+        "Weighting": "Relative",
+        "Thresholding": "Raw Returns"
+    },
+    "LONG_5_RELATIVE_RAW": {
+        "Portfolio": "Long",
+        "Streak": 5,
+        "Weighting": "Relative",
+        "Thresholding": "Raw Returns"
+    },
+    "SHORT_1_RELATIVE_RAW": {
+        "Portfolio": "Short",
+        "Streak": 1,
+        "Weighting": "Relative",
+        "Thresholding": "Raw Returns"
+    },
+    "SHORT_2_RELATIVE_RAW": {
+        "Portfolio": "Short",
+        "Streak": 2,
+        "Weighting": "Relative",
+        "Thresholding": "Raw Returns"
+    },
+    "SHORT_3_RELATIVE_RAW": {
+        "Portfolio": "Short",
+        "Streak": 3,
+        "Weighting": "Relative",
+        "Thresholding": "Raw Returns"
+    },
+    "SHORT_4_RELATIVE_RAW": {
+        "Portfolio": "Short",
+        "Streak": 4,
+        "Weighting": "Relative",
+        "Thresholding": "Raw Returns"
+    },
+    "SHORT_5_RELATIVE_RAW": {
+        "Portfolio": "Short",
+        "Streak": 5,
+        "Weighting": "Relative",
+        "Thresholding": "Raw Returns"
+    },
+    "LONG_1_RELATIVE_MARKET": {
+        "Portfolio": "Long",
+        "Streak": 1,
+        "Weighting": "Relative",
+        "Thresholding": "Excess Returns"
+    }, 
+    "LONG_2_RELATIVE_MARKET": {
+        "Portfolio": "Long",
+        "Streak": 2,
+        "Weighting": "Relative",
+        "Thresholding": "Excess Returns"
+    },
+    "LONG_3_RELATIVE_MARKET": {
+        "Portfolio": "Long",
+        "Streak": 3,
+        "Weighting": "Relative",
+        "Thresholding": "Excess Returns"
+    },
+    "LONG_4_RELATIVE_MARKET": {
+        "Portfolio": "Long",
+        "Streak": 4,
+        "Weighting": "Relative",
+        "Thresholding": "Excess Returns"
+    },
+    "LONG_5_RELATIVE_MARKET": {
+        "Portfolio": "Long",
+        "Streak": 5,
+        "Weighting": "Relative",
+        "Thresholding": "Excess Returns"
+    },
+    "SHORT_1_RELATIVE_MARKET": {
+        "Portfolio": "Short",
+        "Streak": 1,
+        "Weighting": "Relative",
+        "Thresholding": "Excess Returns"
+    },
+    "SHORT_2_RELATIVE_MARKET": {
+        "Portfolio": "Short",
+        "Streak": 2,
+        "Weighting": "Relative",
+        "Thresholding": "Excess Returns"
+    },
+    "SHORT_3_RELATIVE_MARKET": {
+        "Portfolio": "Short",
+        "Streak": 3,
+        "Weighting": "Relative",
+        "Thresholding": "Excess Returns"
+    },
+    "SHORT_4_RELATIVE_MARKET": {
+        "Portfolio": "Short",
+        "Streak": 4,
+        "Weighting": "Relative",
+        "Thresholding": "Excess Returns"
+    },
+    "SHORT_5_RELATIVE_MARKET": {
+        "Portfolio": "Short",
+        "Streak": 5,
+        "Weighting": "Relative",
+        "Thresholding": "Excess Returns"
+    }
+
+}

@@ -1,14 +1,16 @@
 # Quantitative Trading Competition - Trading Financial Anamalies in the Market
 
 This repository is the Backtesting Implementation for the seminar 'Quantitative Trading Competition', held at KIT Karlsruhe in the summer semester 2024. The main goal of the seminar is to develop a trading strategy based on the paper 'Streaks on daily returns'. Hereby daily, stocks are classified as n positive or negative streaks if they over or underperformed based on a certain threshold. The idea is to go the postive streaks short and go the negative streaks long. In this implementation the parameter of the strategy are the following:
-- Streak length: How many consecutive a streak has to under- or overperformed
-- Thresholding type: Which threshold is used to classify an under- or overperformance. In this implementation there are two threshold types:
-    - returnRaw: Check if the return was positive or negative
-    - marketExcessReturn: Check if the return was higher or lower than the respective market return
-- Weighting: Which percentages of losers or winner we buy/sell. In this implementation there are two options:
-    - Equal weighting
-    - Value weighting
-- Long/Short: How much leverage is used for the given portfolio.
+- Streak Length: Determines the number of consecutive days a streak must over or underperform.
+
+- Thresholding Type: Specifies the threshold used to classify over or underperformance. Two threshold types are implemented:
+
+- returnRaw: Determines if the return was positive or negative.
+- marketExcessReturn: Compares the return to the respective market return.
+- Weighting: Determines the percentage of winners or losers bought or sold. Two weighting options are available:
+
+- Equal Weighting
+- Relative Weighting
 
 
 . The repository contains the following files:
@@ -20,3 +22,13 @@ This repository is the Backtesting Implementation for the seminar 'Quantitative 
 ## Contributors
 
 - [Simon Schmitz]
+
+## Usage:
+
+To utilize the trading strategy implementation, follow these steps:
+
+Clone the repository to your local machine.
+Navigate to the src/ directory.
+Modify the strategy parameters as needed in the provided source code.
+Execute the trading strategy implementation.
+Analyze the results and adjust parameters as necessary for optimization.
