@@ -4,20 +4,28 @@ import pandas as pd
 import yfinance as yf
 import io
 import zipfile
-
+from pathlib import Path
 
 
 class DataReader:
+    """A class to fetch and store data for the trading bot."""
     def __init__(self, start_date) -> None:
         self.start_date = start_date
-        self._path_sp500_stock_data = r"C:\Users\simon\OneDrive\Dokumente\[1] Uni\[1] Master\2. Semester Sommersemester 2024\Quantitative_trading_competition\Code\Quantitative_trading_competition\data\sp500_stock_data.csv"
-        self._path_market_interest = r"C:\Users\simon\OneDrive\Dokumente\[1] Uni\[1] Master\2. Semester Sommersemester 2024\Quantitative_trading_competition\Code\Quantitative_trading_competition\data\market_interest.csv"
-        self._path_ff_daily = r"C:\Users\simon\OneDrive\Dokumente\[1] Uni\[1] Master\2. Semester Sommersemester 2024\Quantitative_trading_competition\Code\Quantitative_trading_competition\data\ff_daily.csv"
+
+        # Define the paths to store the data
+        base_path = Path(__file__).resolve().parent.parent
+        self._path_sp500_stock_data = base_path / "data" / "sp500_stock_data.csv"
+        self._path_market_interest = base_path / "data" / "market_interest.csv"
+        self._path_ff_daily = base_path / "data" / "ff_daily.csv"
+
+        # self._path_sp500_stock_data = r"C:\Users\simon\OneDrive\Dokumente\[1] Uni\[1] Master\2. Semester Sommersemester 2024\Quantitative_trading_competition\Code\New folder\Quantitative_trading_competition\data\sp500_stock_data.csv"
+        # self._path_market_interest = r"C:\Users\simon\OneDrive\Dokumente\[1] Uni\[1] Master\2. Semester Sommersemester 2024\Quantitative_trading_competition\Code\New folder\Quantitative_trading_competition\data\market_interest.csv"
+        # self._path_ff_daily = r"C:\Users\simon\OneDrive\Dokumente\[1] Uni\[1] Master\2. Semester Sommersemester 2024\Quantitative_trading_competition\Code\New folder\Quantitative_trading_competition\data\ff_daily.csv"
 
     def run(self) -> None:
         self.stockData = pd.DataFrame()
         self.sp500_symbols = self._get_sp500_symbols()
-        # self.sp500_symbols = ["AEE", 'AMZN']
+       # self.sp500_symbols = ["AEE"]
         self.stockData = pd.DataFrame()
         self._fetch_stock_data(start_date=self.start_date)
         self._save_stock_data_to_csv()
