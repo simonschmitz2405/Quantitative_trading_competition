@@ -229,8 +229,6 @@ class Portfolio:
                 streak_today = streak_today.nsmallest(self.maxStock, "STREAK_4_MARKET")
                 sum_market_cap = streak_today["MARKET_CAP"].sum()
                 streak_today["WEIGHT"] = streak_today["MARKET_CAP"] / sum_market_cap
-                print(streak_today.info())
-                # print("TRADE: \n", streak_today["TICKER","WEIGHT"])
                 print(streak_today)
 
             # Filter data for long and short streaks for raw returns
