@@ -25,7 +25,7 @@ class DataReader:
     def run(self) -> None:
         self.stockData = pd.DataFrame()
         self.sp500_symbols = self._get_sp500_symbols()
-       # self.sp500_symbols = ["AEE"]
+        # self.sp500_symbols = ["AEE"]
         self.stockData = pd.DataFrame()
         self._fetch_stock_data(start_date=self.start_date)
         self._save_stock_data_to_csv()
@@ -178,47 +178,16 @@ class DataReader:
         fama_french.iloc[:, -1] = fama_french.iloc[:, -1] / 100
         fama_french = fama_french[fama_french["Date"] >= self.start_date]
 
+        fama_french.set_index("Date", inplace=True)
+        fama_french = fama_french.reindex(self.stockData["DATE"].unique())
+        fama_french.interpolate(method="linear", inplace=True)
+        fama_french.reset_index(inplace=True)
+        fama_french = fama_french.rename(columns={"index": "DATE"})
+
+
+
         fama_french.to_csv(
             self._path_ff_daily,
             index=False,
         )
 
-
-    # def _get_FamaFrench_3Factors_weekly(self) -> None:
-    #     ff_weekly_url = "https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/ftp/F-F_Research_Data_Factors_weekly_CSV.zip"
-    #     save_path = self._path_ff_weekly
-
-    #     # Download the file securely
-    #     response = requests.get(ff_weekly_url)
-        
-    #     # Check if download is successful
-    #     if response.status_code == 200:
-    #         with zipfile.ZipFile(io.BytesIO(response.content)) as z:
-    #             # Extract the specific file from the ZIP archive
-    #             with z.open("F-F_Research_Data_Factors_weekly.csv") as csv_file:
-    #                 with open(save_path, "wb") as out_file:
-    #                     out_file.write(csv_file.read())
-
-    # def _prepare_FamaFrench(self) -> None:
-    #     fama_french = pd.read_csv(
-    #         self._path_ff_weekly,
-    #         skiprows=4,
-    #         header=0,
-    #     )
-
-    #     fama_french = fama_french.rename(columns={fama_french.columns[0]: "Date"})
-    #     fama_french = fama_french.iloc[:, [0, 4]]
-    #     fama_french = fama_french.iloc[:-3, :]
-    #     fama_french["Date"] = pd.to_datetime(fama_french["Date"], format="%Y%m%d")
-    #     fama_french.iloc[:, -1] = fama_french.iloc[:, -1] / 100
-    #     fama_french = fama_french[fama_french["Date"] >= self.start_date]
-
-    #     fama_french.to_csv(
-    #         self._path_ff_weekly,
-    #         index=False,
-    #     )
-
-
-
-
-# data_reader = DataReader("2024-05-05")
