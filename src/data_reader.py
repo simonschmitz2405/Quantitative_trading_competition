@@ -17,7 +17,6 @@ class DataReader:
         self._path_sp500_stock_data = base_path / "data" / "sp500_stock_data.csv"
         self._path_market_interest = base_path / "data" / "market_interest.csv"
         self._path_ff_daily = base_path / "data" / "ff_daily.csv"
-        self._path_ff_daily = base_path / "data" / "Fred_daily.csv"
 
         # self._path_sp500_stock_data = r"C:\Users\simon\OneDrive\Dokumente\[1] Uni\[1] Master\2. Semester Sommersemester 2024\Quantitative_trading_competition\Code\New folder\Quantitative_trading_competition\data\sp500_stock_data.csv"
         # self._path_market_interest = r"C:\Users\simon\OneDrive\Dokumente\[1] Uni\[1] Master\2. Semester Sommersemester 2024\Quantitative_trading_competition\Code\New folder\Quantitative_trading_competition\data\market_interest.csv"
@@ -33,13 +32,6 @@ class DataReader:
         self._get_market_return_and_US_Treasury()
         self._get_FamaFrench_3Factors_daily()
         self._prepare_FamaFrench()
-        self._get_Fred_daily()
-
-     #   fama_french = your_instance._prepare_FamaFrench()
-      #  Fred_daily = your_instance._get_Fred_daily()
-       # fama_french = pd.concat([fama_french, Fred_daily], ignore_index=True)
-
-
 
     def _get_sp500_symbols(self) -> list:
         url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
@@ -172,14 +164,12 @@ class DataReader:
                     with open(save_path, "wb") as out_file:
                         out_file.write(csv_file.read())
 
-    def _prepare_FamaFrench(self) -> pd.DataFrame:
+    def _prepare_FamaFrench(self) -> None:
         fama_french = pd.read_csv(
             self._path_ff_daily,
             skiprows=4,
             header=0,
-
         )
-
 
         fama_french = fama_french.rename(columns={fama_french.columns[0]: "Date"})
         fama_french = fama_french.iloc[:, [0, 4]]
@@ -192,20 +182,6 @@ class DataReader:
             self._path_ff_daily,
             index=False,
         )
-        return fama_french
-
-    def _get_Fred_daily(self) -> pd.DataFrame:
-        Fred_url = "https://fred.stlouisfed.org/graph/fredgraph.csv?bgcolor=%23e1e9f0&chart_type=line&drp=0&fo=open%20sans&graph_bgcolor=%23ffffff&height=450&mode=fred&recession_bars=on&txtcolor=%23444444&ts=12&tts=12&width=1138&nt=0&thu=0&trc=0&show_legend=yes&show_axis_titles=yes&show_tooltip=yes&id=DGS1MO&scale=left&cosd=2024-04-28&coed=2024-06-06&line_color=%234572a7&link_values=false&line_style=solid&mark_type=none&mw=3&lw=2&ost=-99999&oet=99999&mma=0&fml=a&fq=Daily&fam=avg&fgst=lin&fgsnd=2020-02-01&line_index=1&transformation=lin&vintage_date=2024-06-09&revision_date=2024-06-09&nd=2001-07-31"
-        save_path = self._path_ff_daily
-        response = requests.get(Fred_url)
-        response.raise_for_status()  # Check if the request was successful
-
-        with open(save_path, 'wb') as file:
-            file.write(response.content)
-        Fred_daily =pd.read_csv(save_path)
-
-        return Fred_daily
-
 
 
     # def _get_FamaFrench_3Factors_weekly(self) -> None:
