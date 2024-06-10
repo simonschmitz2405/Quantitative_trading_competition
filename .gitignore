@@ -198,4 +198,3 @@ pyrightconfig.json
 
 #--- Additional Ignores ---
 .vscode/
-.DS_Store

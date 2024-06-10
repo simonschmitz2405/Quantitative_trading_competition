@@ -6,7 +6,6 @@ from scipy import stats
 import statsmodels.api as sm
 import json
 from pathlib import Path
-from datetime import timedelta, datetime
 
 
 class Portfolio:
@@ -50,9 +49,6 @@ class Portfolio:
 
         # Calculate the streaks
         self._calculate_streaks()
-
-        # Compute betas
-        self._calculate_stock_betas()
 
         self.Returns = self._calculate_returns()
 
@@ -295,96 +291,6 @@ class Portfolio:
         return self.ff_daily["RF"].tolist(), self.marketReturns["SP500_Returns"].tolist()[
             :-correction
         ]
-
-    def _calculate_stock_betas(self, debug=True) -> pd.DataFrame:
-        """To implement the alternative CAPM threshold, we estimate for each stock and each day the CAPM betas by regressing stocks’ daily excess returns on daily market excess returns. The estimation is based on the previous 252 days and we require at least 128 observations. The predicted excess return of a stock is then equal to the market excess return times the estimated beta.
-
-        This beta is then added to a column of the dataframe
-        """
-
-        if debug:
-            plt.figure(figsize=(8, 8))
-        
-        ff_dates = pd.to_datetime(self.ff_daily["Date"], format="%Y-%m-%d")
-
-        # Calculate the betas for each stock
-        for stock in self.stockData["TICKER"].unique():
-            # Filter the data for the stock
-            stock_data = self.stockData[self.stockData["TICKER"] == stock]
-
-            if debug:
-                print(f"Calculating betas for {stock}. Available rows: {len(stock_data)}")
-
-            # Convert the dates to datetime 
-            stock_dates = pd.to_datetime(stock_data["DATE"], format="%Y-%m-%d")
-
-            # Calculate the betas for each day (The 128th row is potentially the first one with enough data)
-            for i in range(128, len(stock_data)):
-                # Get date of current stock data
-                end = stock_dates.iloc[i]
-
-                # If the date is greater than the last date in the ff_daily data, break the loop
-                if end > pd.to_datetime(self.ff_daily["Date"].max(), format="%Y-%m-%d"):
-                    if debug:
-                        print(f"End date {end:%d-%m-%Y} is greater than the last date in the ff_daily data.")
-                    break
-
-                # Subtract 252 days from the current date
-                start = end - timedelta(days=252)
-
-                # Get the stock data for the previous 252 days
-                indices = stock_dates[(stock_dates >= start) & (stock_dates <= end)].index
-                stock_data_previous = stock_data.loc[indices]
-                previous_dates = pd.to_datetime(stock_data_previous["DATE"], format="%Y-%m-%d")
-
-                # Get the risk-free rates for the previous dates
-                ff_indices = ff_dates.isin(previous_dates)
-                risk_free_rates = self.ff_daily[ff_indices]["RF"]
-                
-                # Calculate the excess returns
-                excess_stock_returns = (
-                    stock_data_previous.RETURN  - risk_free_rates.values #- stock_data_previous.SP500_Returns
-                )
-                excess_market_returns = (
-                    stock_data_previous.SP500_Returns - risk_free_rates.values
-                )
-
-                # Remove NaN values by getting indices of NaN-rows OR-ing them and removing them
-                nan_indices = excess_stock_returns.isnull() | excess_market_returns.isnull()
-                excess_stock_returns = excess_stock_returns[~nan_indices]
-                excess_market_returns = excess_market_returns[~nan_indices]
-                
-                # If there are not enough data points, continue with the next entry 
-                if len(excess_market_returns) < 128:
-                    if debug:
-                        print(f"Not enough data points for {stock} on {end:%d-%m-%Y}. Available rows: {len(stock_data_previous)}")
-                    continue
-                
-                # Fit the model
-                beta, alpha = np.polyfit(excess_market_returns, excess_stock_returns, 1)
-
-                if debug:
-                    plt.clf()
-                    plt.scatter(excess_market_returns, excess_stock_returns, c="blue", s=1, label="Data")
-                    plt.plot([-0.1, 0.1], [alpha - 0.1 * beta, alpha + 0.1 * beta], color="red", linewidth=1, label="Regression Line")
-                    plt.legend()
-                    plt.title(f"{stock}-Beta: {beta:.2f} [Based on {len(excess_market_returns)} data points between {start:%d-%m-%Y} and {end:%d-%m-%Y}]")
-                    plt.xlabel("Excess Market Returns [EMR]")
-                    plt.ylabel("Excess Stock Returns [ESR]")
-                    plt.xlim(-0.1, 0.1)
-                    plt.ylim(-0.1, 0.1)
-                    
-                    plt.show(block=False)
-                    plt.pause(0.01)
-
-                    print(f"Stock: {stock}, Start - End: {start:%d-%m-%Y} - {end:%d-%m-%Y}, Beta: {beta:.2f} [Based on {len(excess_market_returns)} data points]")
-
-                # Add the beta to the stock data
-                self.stockData.loc[stock_data.index[i], "DAILY_STOCK_BETA"] = beta
-
-        return None
-
-
 
     def _get_t_stats(self, vector, lags=1) -> tuple:
         """Calculate the t-stats for the long and short portfolios with Newey-West standard errors."""
