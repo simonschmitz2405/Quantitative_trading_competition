@@ -218,6 +218,12 @@ class Portfolio:
                 return group[group[f"STREAK_{streak}"] < 0]
 
     def trade(self, streak):
+        """Return the stocks to buy for the given streak.
+        
+        Note: The stocks are selected based on the actual day and are not
+        available during the whole trading day.
+        """
+        streak = streak - 1
         streak_today = (
             self.stockData.groupby("DATE")
             .apply(self._get_top_rows, streak=streak, condition="trade")
