@@ -90,6 +90,7 @@ class Portfolio:
                 lag
             ) - self.stockData.groupby("TICKER")["SP500_Returns"].shift(lag)
 
+        # Calculate excess CAPM lagged columns
         for lag in range(1, self.streakLength + 1):
             self.stockData[f"LAG_{lag}_CAPM"] = self.stockData.groupby("TICKER")["RETURN"].shift(
                 lag
@@ -150,14 +151,20 @@ class Portfolio:
                 self.stockData[[f"LAG_{i}_MARKET" for i in range(1, streak + 1)]] < 0
             ).all(axis=1)
 
-            # streak_condition_capm = (
-            #     self.stockData[[f"LAG_{i}_CAPM" for i in range(1, streak + 1)]] > 0
+            streak_condition_capm = (
+                self.stockData[[f"LAG_{i}_CAPM" for i in range(1, streak + 1)]] > 0
+            ).all(axis=1) | (
+                self.stockData[[f"LAG_{i}_CAPM" for i in range(1, streak + 1)]] < 0
+            ).all(axis=1)
 
             # Create columns for the streaks based on the thresholding conditions
             # Streak: 1, No streak: 0
             self.stockData[f"STREAK_{streak}"] = np.where(streak_condition_raw, 1, 0)
             self.stockData[f"STREAK_{streak}_MARKET"] = np.where(
                 streak_condition_excess, 1, self.stockData[f"STREAK_{streak}"]
+            )
+            self.stockData[f"STREAK_{streak}_CAPM"] = np.where(
+                streak_condition_capm, 1, self.stockData[f"STREAK_{streak}"]
             )
 
             # Multiply streaks by the mean of the respective lagged returns
@@ -168,26 +175,63 @@ class Portfolio:
             self.stockData[f"STREAK_{streak}_MARKET"] *= self.stockData[
                 [f"LAG_{i}_MARKET" for i in range(1, streak + 1)]
             ].mean(axis=1)
+            self.stockData[f"STREAK_{streak}_CAPM"] *= self.stockData[
+                [f"LAG_{i}_CAPM" for i in range(1, streak + 1)]
+            ].mean(axis=1)
 
         return None
 
-    def _get_top_rows(self, group, streak, condition, market) -> pd.DataFrame:
+    def _get_top_rows(self, group, streak, condition, threshold="raw") -> pd.DataFrame:
         """Helper function to get top maxStock rows for a given condition."""
         if condition == "long":
-            if market == True:
-                return group[group[f"STREAK_{streak}_MARKET"] < 0].nsmallest(self.maxStock, f"STREAK_{streak}_MARKET")
+            if threshold == "market":
+                return group[group[f"STREAK_{streak}_MARKET"] < 0].nsmallest(
+                    self.maxStock, f"STREAK_{streak}_MARKET"
+                )
+            if threshold == "capm":
+                return group[group[f"STREAK_{streak}_CAPM"] < 0].nsmallest(
+                    self.maxStock, f"STREAK_{streak}_CAPM"
+                )
             else:
-                return group[group[f"STREAK_{streak}"] < 0].nsmallest(self.maxStock, f"STREAK_{streak}")
+                return group[group[f"STREAK_{streak}"] < 0].nsmallest(
+                    self.maxStock, f"STREAK_{streak}"
+                )
         if condition == "short":
-            if market == True:
-                return group[group[f"STREAK_{streak}_MARKET"] > 0].nlargest(self.maxStock, f"STREAK_{streak}_MARKET")
+            if threshold == "market":
+                return group[group[f"STREAK_{streak}_MARKET"] > 0].nlargest(
+                    self.maxStock, f"STREAK_{streak}_MARKET"
+                )
+            if threshold == "capm":
+                return group[group[f"STREAK_{streak}_CAPM"] > 0].nlargest(
+                    self.maxStock, f"STREAK_{streak}_CAPM"
+                )
             else:
-                return group[group[f"STREAK_{streak}"] > 0].nlargest(self.maxStock, f"STREAK_{streak}")
+                return group[group[f"STREAK_{streak}"] > 0].nlargest(
+                    self.maxStock, f"STREAK_{streak}"
+                )
         elif condition == "trade":
-            if market == True:
+            if threshold == "market":
                 return group[group[f"STREAK_{streak}_MARKET"] < 0]
+            if threshold == "capm":
+                return group[group[f"STREAK_{streak}_CAPM"] < 0]
             else:
                 return group[group[f"STREAK_{streak}"] < 0]
+
+    def trade(self, streak):
+        streak_today = (
+            self.stockData.groupby("DATE")
+            .apply(self._get_top_rows, streak=streak, condition="trade")
+            .reset_index(drop=True)
+        )
+        today = pd.Timestamp("today").normalize()
+        streak_today = streak_today[streak_today["DATE"] == today]
+        filter = streak_today["RETURN"] < 0
+        streak_today.where(filter, inplace=True)
+        streak_today.dropna(inplace=True)
+        streak_today = streak_today.nsmallest(self.maxStock, "STREAK_4")
+        sum_market_cap = streak_today["MARKET_CAP"].sum()
+        streak_today["WEIGHT"] = streak_today["MARKET_CAP"] / sum_market_cap
+        return streak_today
 
     def _calculate_returns(self) -> pd.DataFrame:
         """Calculate the loser and winner streaks for the given formation date."""
@@ -207,6 +251,9 @@ class Portfolio:
         # Thresholding excess Returns
         long_streaks_market = {}
         short_streaks_market = {}
+        # Thresholding excess CAPM Returns
+        long_streaks_capm = {}
+        short_streaks_capm = {}
 
         for streak in range(1, self.streakLength + 1):
             # Define the key names for the long and short streaks for raw and excess returns
@@ -214,44 +261,58 @@ class Portfolio:
             key_name_short = f"Short_{streak}"
             key_name_long_market = f"Long_{streak}_MARKET"
             key_name_short_market = f"Short_{streak}_MARKET"
+            key_name_long_capm = f"Long_{streak}_CAPM"
+            key_name_short_capm = f"Short_{streak}_CAPM"
 
-            if streak == 4:
-                streak_today = (
-                    self.stockData.groupby("DATE")
-                    .apply(self._get_top_rows, streak=streak, condition="trade", market=True)
-                    .reset_index(drop=True)
-                )
-                today = pd.Timestamp("today").normalize()
-                streak_today = streak_today[streak_today["DATE"] == today]
-                filter = streak_today["RETURN"] < streak_today["SP500_Returns"]
-                streak_today.where(filter, inplace=True)
-                streak_today.dropna(inplace=True)
-                streak_today = streak_today.nsmallest(self.maxStock, "STREAK_4_MARKET")
-                sum_market_cap = streak_today["MARKET_CAP"].sum()
-                streak_today["WEIGHT"] = streak_today["MARKET_CAP"] / sum_market_cap
-                print(streak_today)
+            # if streak == 4:
+            #     streak_today = (
+            #         self.stockData.groupby("DATE")
+            #         .apply(self._get_top_rows, streak=streak, condition="trade", market=True)
+            #         .reset_index(drop=True)
+            #     )
+            #     today = pd.Timestamp("today").normalize()
+            #     streak_today = streak_today[streak_today["DATE"] == today]
+            #     filter = streak_today["RETURN"] < streak_today["SP500_Returns"]
+            #     streak_today.where(filter, inplace=True)
+            #     streak_today.dropna(inplace=True)
+            #     streak_today = streak_today.nsmallest(self.maxStock, "STREAK_4_MARKET")
+            #     sum_market_cap = streak_today["MARKET_CAP"].sum()
+            #     streak_today["WEIGHT"] = streak_today["MARKET_CAP"] / sum_market_cap
+            #     print(streak_today)
 
             # Filter data for long and short streaks for raw returns
             long_streaks[key_name_long] = (
                 self.stockData.groupby("DATE")
-                .apply(self._get_top_rows, streak=streak, condition="long", market=False)
+                .apply(self._get_top_rows, streak=streak, condition="long")
                 .reset_index(drop=True)
             )
             short_streaks[key_name_short] = (
                 self.stockData.groupby("DATE")
-                .apply(self._get_top_rows, streak=streak, condition="short", market=False)
+                .apply(self._get_top_rows, streak=streak, condition="short")
                 .reset_index(drop=True)
             )
 
             # Filter data for long and short streaks for excess returns
             long_streaks_market[key_name_long_market] = (
                 self.stockData.groupby("DATE")
-                .apply(self._get_top_rows, streak=streak, condition="long", market=True)
+                .apply(self._get_top_rows, streak=streak, condition="long", threshold="market")
                 .reset_index(drop=True)
             )
             short_streaks_market[key_name_short_market] = (
                 self.stockData.groupby("DATE")
-                .apply(self._get_top_rows, streak=streak, condition="short", market = True)
+                .apply(self._get_top_rows, streak=streak, condition="short", threshold="market")
+                .reset_index(drop=True)
+            )
+
+            # Filter data for long and short streaks for excess capm returns
+            long_streaks_capm[key_name_long_capm] = (
+                self.stockData.groupby("DATE")
+                .apply(self._get_top_rows, streak=streak, condition="long", threshold="capm")
+                .reset_index(drop=True)
+            )
+            short_streaks_capm[key_name_short_capm] = (
+                self.stockData.groupby("DATE")
+                .apply(self._get_top_rows, streak=streak, condition="short", threshold="capm")
                 .reset_index(drop=True)
             )
 
@@ -268,7 +329,14 @@ class Portfolio:
             short_streaks_market[key_name_short_market]["DATE"] = pd.to_datetime(
                 short_streaks_market[key_name_short_market]["DATE"]
             )
+            long_streaks_capm[key_name_long_capm]["DATE"] = pd.to_datetime(
+                long_streaks_capm[key_name_long_capm]["DATE"]
+            )
+            short_streaks_capm[key_name_short_capm]["DATE"] = pd.to_datetime(
+                short_streaks_capm[key_name_short_capm]["DATE"]
+            )
 
+            # Calculate the total market cap for each date
             value_long = long_streaks[key_name_long].groupby("DATE")["MARKET_CAP"].sum()
             value_short = short_streaks[key_name_short].groupby("DATE")["MARKET_CAP"].sum()
             value_long_market = (
@@ -277,25 +345,12 @@ class Portfolio:
             value_short_market = (
                 short_streaks_market[key_name_short_market].groupby("DATE")["MARKET_CAP"].sum()
             )
-
-
-            # if streak == 4:
-            #     today = pd.Timestamp("today").normalize()
-            #     streak_today = long_streaks[key_name_long][
-            #         long_streaks[key_name_long]["DATE"] == today
-            #     ]
-
-            #     print("HIER")
-            #     print(streak_today)
-            #     sum_market_cap = streak_today["MARKET_CAP"].sum()
-            #     print("sum", sum_market_cap)
-            #     streak_today["WEIGHT"] = streak_today["MARKET_CAP"] / sum_market_cap
-            #     print("HIER2")
-            #     print(streak_today)
-                # print("TRADE: \n", streak_today["TICKER","WEIGHT"])
-
-
-
+            value_long_capm = (
+                long_streaks_capm[key_name_long_capm].groupby("DATE")["MARKET_CAP"].sum()
+            )
+            value_short_capm = (
+                short_streaks_capm[key_name_short_capm].groupby("DATE")["MARKET_CAP"].sum()
+            )
 
             # Calculate the mean returns for equal weights for long and short streaks
             mean_returns_long = (
@@ -321,6 +376,18 @@ class Portfolio:
                 .groupby("DATE")["RETURN"]
                 .mean()
                 .rename(f"SHORT_{streak}_EQUAL_MARKET")
+            )
+            mean_returns_long_capm = (
+                long_streaks_capm[key_name_long_capm]
+                .groupby("DATE")["RETURN"]
+                .mean()
+                .rename(f"LONG_{streak}_EQUAL_CAPM")
+            )
+            mean_returns_short_capm = (
+                short_streaks_capm[key_name_short_capm]
+                .groupby("DATE")["RETURN"]
+                .mean()
+                .rename(f"SHORT_{streak}_EQUAL_CAPM")
             )
 
             # Calculate the relative returns for long and short streaks
@@ -352,6 +419,20 @@ class Portfolio:
                 .div(value_short_market)
                 .rename(f"SHORT_{streak}_RELATIVE_MARKET")
             )
+            relative_returns_long_capm = (
+                long_streaks_capm[key_name_long_capm]
+                .groupby("DATE")["RETURN*MARKET_CAP"]
+                .sum()
+                .div(value_long_capm)
+                .rename(f"LONG_{streak}_RELATIVE_CAPM")
+            )
+            relative_returns_short_capm = (
+                short_streaks_capm[key_name_short_capm]
+                .groupby("DATE")["RETURN*MARKET_CAP"]
+                .sum()
+                .div(value_short_capm)
+                .rename(f"SHORT_{streak}_RELATIVE_CAPM")
+            )
 
             # Merge the mean returns into the Returns DataFrame
             Returns = pd.merge(Returns, mean_returns_long.reset_index(), on="DATE", how="left")
@@ -370,6 +451,16 @@ class Portfolio:
             Returns = pd.merge(
                 Returns, relative_returns_short_market.reset_index(), on="DATE", how="left"
             )
+            Returns = pd.merge(Returns, mean_returns_long_capm.reset_index(), on="DATE", how="left")
+            Returns = pd.merge(
+                Returns, mean_returns_short_capm.reset_index(), on="DATE", how="left"
+            )
+            Returns = pd.merge(
+                Returns, relative_returns_long_capm.reset_index(), on="DATE", how="left"
+            )
+            Returns = pd.merge(
+                Returns, relative_returns_short_capm.reset_index(), on="DATE", how="left"
+            )
 
         Returns.drop(columns=["DATE"], inplace=True)
         Returns.fillna(0, inplace=True)
@@ -378,7 +469,7 @@ class Portfolio:
     def _calculate_riskfree_market_rate(self) -> tuple:
         """Calculate the risk-free rate."""
         self.marketReturns.fillna(0, inplace=True)
-        return self.interestRate["RF"].tolist(), self.marketReturns["SP500_Returns"].tolist()
+        return self.interestRate["RF"].tolist()[252:], self.marketReturns["SP500_Returns"].tolist()[252:]
 
     def _get_t_stats(self, vector, lags=1) -> tuple:
         """Calculate the t-stats for the long and short portfolios with Newey-West standard errors."""
@@ -397,6 +488,8 @@ class Portfolio:
 
     def _calculate_performance(self, dailyReturns) -> None:
         """Calculate the performance of the portfolio."""
+
+        dailyReturns = dailyReturns[252:]
 
         # Daily average returns
         dailyReturn = np.array(dailyReturns).mean()
