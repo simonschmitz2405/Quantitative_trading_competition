@@ -3,16 +3,17 @@
 This repository is the Backtesting Implementation for the seminar 'Quantitative Trading Competition', held at KIT Karlsruhe in the summer semester 2024. The main goal of the seminar is to develop a trading strategy based on the paper 'Streaks on daily returns'. Hereby daily, stocks are classified as n positive or negative streaks if they over or underperformed based on a certain threshold. The idea is to go the postive streaks short and go the negative streaks long. In this implementation the parameter of the strategy are the following:
 - Streak Length: Determines the number of consecutive days a streak must over or underperform.
 
-- Thresholding Type: Specifies the threshold used to classify over or underperformance. Two threshold types are implemented:
+- Thresholding Type: Specifies the threshold used to classify over or underperformance. Three threshold types are implemented:
 
-- returnRaw: Determines if the return was positive or negative.
+    - returnRaw: Determines if the return was positive or negative.
     - marketExcessReturn: Compares the return to the respective market return.
-    - Weighting: Determines the percentage of winners or losers bought or sold. Two weighting options are available:
+    - CAPM: Compares the return respective to CAPM.
 
 - Weighing: Determines in which percentage the streak stocks are bought:
     - Equal Weighting
     - Relative Weighting
 
+- maxStock: Maximum number of stocks traded each day.
 
 . The repository contains the following files:
 
