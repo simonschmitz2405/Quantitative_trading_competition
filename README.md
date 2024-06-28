@@ -1,6 +1,9 @@
-# Quantitative Trading Competition - Trading Financial Anamalies in the Market
+# ** Quantitative Trading Competition - Trading Financial Anamalies in the Market **
 
-This repository is the Backtesting Implementation for the seminar 'Quantitative Trading Competition', held at KIT Karlsruhe in the summer semester 2024. The main goal of the seminar is to develop a trading strategy based on the paper 'Streaks on daily returns'. Hereby daily, stocks are classified as n positive or negative streaks if they over or underperformed based on a certain threshold. The idea is to go the postive streaks short and go the negative streaks long. In this implementation the parameter of the strategy are the following:
+This repository is the Backtesting Implementation for the seminar 'Quantitative Trading Competition', held at KIT Karlsruhe in the summer semester 2024. The main goal of the seminar is to develop a trading strategy based on the paper 'Streaks on daily returns'. Hereby daily, stocks are classified as n positive or negative streaks if they over or underperformed based on a certain threshold. The idea is to go the postive streaks short and go the negative streaks long. 
+## Parameter
+
+In this implementation the parameter of the strategy are the following:
 - Streak Length: Determines the number of consecutive days a streak must over or underperform.
 
 - Thresholding Type: Specifies the threshold used to classify over or underperformance. Three threshold types are implemented:
@@ -15,7 +18,9 @@ This repository is the Backtesting Implementation for the seminar 'Quantitative 
 
 - maxStock: Maximum number of stocks traded each day.
 
-. The repository contains the following files:
+## Structure of the Repository
+
+The repository contains the following files:
 
 - `data/`: Folder containing the data used in the seminar
 - `src/`: Folder containing the source code of the trading strategy
@@ -25,7 +30,9 @@ This repository is the Backtesting Implementation for the seminar 'Quantitative 
 
 - [Simon Schmitz]
 
-## Usage:
+## A Short Tutorial
+
+The following section serves as a short introduction to the workflow of the Quantitative Trading Competition. The presented code corresponds to the `main.py` file, which can simple be executed by a suitable Python editor.
 
 To utilize the trading strategy implementation, follow these steps:
 
