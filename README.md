@@ -1,4 +1,4 @@
-# ** Quantitative Trading Competition - Trading Financial Anamalies in the Market **
+# Quantitative Trading Competition - Trading Financial Anamalies in the Market 
 
 This repository is the Backtesting Implementation for the seminar 'Quantitative Trading Competition', held at KIT Karlsruhe in the summer semester 2024. The main goal of the seminar is to develop a trading strategy based on the paper 'Streaks on daily returns'. Hereby daily, stocks are classified as n positive or negative streaks if they over or underperformed based on a certain threshold. The idea is to go the postive streaks short and go the negative streaks long. 
 ## Parameter
